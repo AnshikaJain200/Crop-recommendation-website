@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, redirect, url_for
 import numpy as np
 import pickle
 
@@ -10,21 +10,25 @@ ms = pickle.load(open('minmaxscaler.pkl', 'rb'))
 # Creating Flask app
 app = Flask(__name__)
 
-
 @app.route('/')
+def welcome():
+    return render_template("enter.html")
+
+@app.route('/index')
 def index():
     return render_template("index.html")
-
 
 @app.route('/about')
 def about():
     return render_template("about.html")
 
-
 @app.route('/contact')
 def contact():
     return render_template("contact.html")
 
+@app.route('/feedback')
+def feedback():
+    return render_template("feedback.html")
 
 @app.route("/predict", methods=['POST'])
 def predict():
@@ -44,24 +48,13 @@ def predict():
     feature_list = [N, P, K, temp, humidity, ph, rainfall]
     single_pred = np.array(feature_list).reshape(1, -1)
 
-    # Debugging: Print feature list and shape
-    print(f"Features: {feature_list}")
-    print(f"Features shape: {single_pred.shape}")
-
     try:
         # Scaling features
         scaled_features = ms.transform(single_pred)
         final_features = sc.transform(scaled_features)
 
-        # Debugging: Print scaled features
-        print(f"Scaled features: {scaled_features}")
-        print(f"Final features: {final_features}")
-
         # Predicting the crop
         prediction = model.predict(final_features)
-
-        # Debugging: Print prediction
-        print(f"Prediction: {prediction}")
 
         # Crop dictionary
         crop_dict = {
@@ -78,12 +71,23 @@ def predict():
         else:
             result = "Sorry, we could not determine the best crop to be cultivated with the provided data."
     except Exception as e:
-        print(f"Error: {e}")
         result = "An error occurred during prediction."
 
     # Rendering result
     return render_template('index.html', result=result)
 
+@app.route("/submit_feedback", methods=['POST'])
+def submit_feedback():
+    name = request.form.get('name')
+    email = request.form.get('email')
+    feedback = request.form.get('feedback')
+
+    # Here you would usually handle the feedback (e.g., save it to a database or send it via email)
+    # For simplicity, we will just print it to the console
+    print(f"Feedback received from {name} ({email}): {feedback}")
+
+    # Redirecting to thank you page
+    return render_template("feedback.html", thank_you=True)
 
 # Running the Flask app
 if __name__ == "__main__":
